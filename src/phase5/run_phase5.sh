@@ -36,16 +36,10 @@ wait_ready() {
 }
 
 kill_servers
-log "starting namer TP=2 on GPUs 0,1"
-start_namer 2 0,1
-EMBED=cuda
-if ! wait_ready 900; then
-  log "TP=2 failed to start — falling back to TP=4 + CPU embedder"
-  kill_servers
-  start_namer 4 0,1,2,3
-  EMBED=cpu
-  wait_ready 1200 || { log "namer failed entirely"; touch artifacts/phase5.failed; exit 1; }
-fi
+log "starting namer TP=4 (TP=2 confirmed not to fit on 24GB cards, 2026-06-10)"
+start_namer 4 0,1,2,3
+EMBED=cpu
+wait_ready 1200 || { log "namer failed entirely"; touch artifacts/phase5.failed; exit 1; }
 
 FAIL=0
 for TRACK in captions siglip2; do
