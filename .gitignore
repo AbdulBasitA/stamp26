@@ -1,0 +1,9 @@
+data/
+cache/
+artifacts/
+venvs/
+repos/
+offline/
+__pycache__/
+.ipynb_checkpoints/
+*.egg-info/
