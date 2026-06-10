@@ -18,7 +18,7 @@
 
 | # | Decision | Resolution | Source |
 |---|---|---|---|
-| D1 | Captioner | **Qwen/Qwen3.5-9B-FP8** primary; `Qwen/Qwen3-VL-8B-Instruct-FP8` fallback; `QuantTrio/Qwen3.5-9B-AWQ` escape hatch. 4× single-GPU vLLM workers, no TP. | research/vlm-captioning.md |
+| D1 | Captioner | **`QuantTrio/Qwen3.5-9B-AWQ`** vs **`Qwen/Qwen3-VL-8B-Instruct-FP8`** — Phase 2 pilot bake-off decides. (CORRECTED 2026-06-09: no official FP8 of Qwen3.5-9B exists — the researched ID `Qwen/Qwen3.5-9B-FP8` was wrong; verified against the live Qwen org listing. `Qwen/Qwen3.5-9B` BF16 cached as reference, too tight to serve video on 24GB.) 4× single-GPU vLLM workers, no TP. | research/vlm-captioning.md + Phase 0 verification |
 | D2 | Namer/judge | **Qwen/Qwen3.6-35B-A3B-FP8** TP=4, thinking disabled server-side; fallback `Qwen/Qwen3-32B-AWQ` (1 GPU). No 70B (dominated). Optional `openai/gpt-oss-20b` second-family judge. | research/naming-llm.md |
 | D3 | Visual embedders | **`facebook/vjepa2-vitl-fpc64-256`** (pretrain ckpt, NOT the ssv2 classification ckpt — unbiased for unsupervised clustering) + **`google/siglip2-so400m-patch16-384`**. DINOv3 optional appearance-vs-semantics ablation (gated — request access in Phase 0). V-JEPA 2.1 is torch.hub-only → excluded; mention in talk only. | research/embeddings.md |
 | D4 | Text embedders | Captions: **`Qwen/Qwen3-Embedding-4B`**. Toponymy `text_embedding_model` (keyphrases/topic names): **`Qwen/Qwen3-Embedding-0.6B`**. bge-m3 rejected (bad at clustering). | research/embeddings.md |
@@ -79,8 +79,8 @@ Per detection @ conf ≥0.5: `{class}|{zone L/C/R by bbox center-x thirds}|{rang
 
 ### 3.4 Serving commands (flags verified in Phase 0 smoke tests — see §6)
 ```bash
-# Captioning phase: one worker per GPU, ports 8001-8004
-CUDA_VISIBLE_DEVICES=$i vllm serve Qwen/Qwen3.5-9B-FP8 --port 800$((i+1)) \
+# Captioning phase: one worker per GPU, ports 8001-8004 ($CAPTIONER = D1 bake-off winner)
+CUDA_VISIBLE_DEVICES=$i vllm serve $CAPTIONER --port 800$((i+1)) \
   --max-model-len 32768 --gpu-memory-utilization 0.92 \
   --limit-mm-per-prompt.video 1 --allowed-local-media-path <data dir> \
   --mm-processor-cache-type shm
@@ -213,17 +213,17 @@ Each phase ends with explicit **Verify** gates. Don't start phase N+1 with phase
 | Asset | Size | Phase |
 |---|---|---|
 | `nexar-ai/nexar_collision_prediction` (dataset) | 31.4 GB | 1 |
-| `Qwen/Qwen3.5-9B-FP8` | ~11 GB | 2 |
-| `Qwen/Qwen3-VL-8B-Instruct-FP8` (fallback) | ~10 GB | 2 |
-| `QuantTrio/Qwen3.5-9B-AWQ` (escape hatch) | ~7 GB | 2 |
+| `QuantTrio/Qwen3.5-9B-AWQ` (captioner candidate A) | ~7 GB | 2 |
+| `Qwen/Qwen3-VL-8B-Instruct-FP8` (captioner candidate B) | ~10 GB | 2 |
+| `Qwen/Qwen3.5-9B` (BF16 reference; not servable w/ video on 24GB) | ~18 GB | 2 |
 | `Qwen/Qwen3.6-35B-A3B-FP8` | ~37 GB | 5 |
 | `Qwen/Qwen3-32B-AWQ` (fallback) | ~19 GB | 5 |
 | `google/siglip2-so400m-patch16-384` | ~3.5 GB | 3 |
 | `facebook/vjepa2-vitl-fpc64-256` | ~2.5 GB | 3 |
 | `Qwen/Qwen3-Embedding-4B` + `-0.6B` | ~9 GB | 3/5 |
 | `ustc-community/dfine-medium-obj2coco` | ~0.2 GB | 3 |
-| `facebook/dinov3-vitl16-pretrain-lvd1689m` (gated, optional) | ~1.5 GB | 8 |
-| `nexar-ai/BADAS-Open` (stretch) | 4 GB | 8 |
+| `facebook/dinov3-vitl16-pretrain-lvd1689m` (gated: MANUAL approval — user must request via HF web, lead time) | ~1.5 GB | 8 |
+| `nexar-ai/BADAS-Open` (gated: auto — user accepts terms on HF web once; token 'bassu' already configured) | 4 GB | 8 |
 | `openai/gpt-oss-20b` (optional 2nd judge) | ~13 GB | 6 |
 | dmp_offline_cache zip, wheel caches (66 GB uv cache already warm) | — | 0 |
 
@@ -232,7 +232,7 @@ All weights verified loadable in Phase 0 (post-cutoff IDs are single-source rese
 ## 6. Hour-1 smoke-test checklist (Phase 0 gate — every item is a known silent-failure or single-source claim)
 
 1. `vllm serve --help` confirms: `--default-chat-template-kwargs`, `--language-model-only`, `--limit-mm-per-prompt.video`, `--mm-processor-cache-type`, `--reasoning-parser`. (Thinking-disable flag is highest-stakes: wrong flag → naming fails silently via Toponymy #155.)
-2. Qwen3.5-9B-FP8 (block-128 FP8) loads + generates on one 4090 (Ada FP8 sits at the support cutoff; Marlin fallback = slower but correct; AWQ if broken).
+2. Both captioner candidates (Qwen3.5-9B-AWQ, Qwen3-VL-8B-Instruct-FP8) load + generate on one 4090 (Ada FP8 sits at the support cutoff; Marlin fallback = slower but correct). DONE 2026-06-09: IDs verified against live HF API; Qwen3.5-9B-FP8 does not exist.
 3. One video request through the captioner with the **literal** caption JSON schema (xgrammar may reject string-length constraints) + explicit `fps`.
 4. Qwen3.6-35B-A3B-FP8 TP=4 with `NCCL_P2P_DISABLE=1` serves; a `json_object` + `max_tokens=128` request through the **actual Toponymy OpenAINamer** returns a parseable name.
 5. torchcodec imports + decodes a Nexar mp4 (system FFmpeg shared libs present).
