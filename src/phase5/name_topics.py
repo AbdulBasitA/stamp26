@@ -42,6 +42,7 @@ def load_track(track):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--track", required=True, choices=["captions", "siglip2"])
+    ap.add_argument("--suffix", default="", help="output suffix for stability reruns, e.g. _run2")
     args = ap.parse_args()
 
     ids, texts, emb, u5 = load_track(args.track)
@@ -77,7 +78,7 @@ def main():
     for i, layer in enumerate(topic_model.cluster_layers_):
         names = topic_model.topic_names_[i]
         labels = layer.cluster_labels
-        np.save(od / f"{args.track}__labels_layer{i}.npy", labels)
+        np.save(od / f"{args.track}{args.suffix}__labels_layer{i}.npy", labels)
         exemplar_idx = getattr(layer, "exemplar_indices", None)
         out["layers"].append({
             "layer": i,
@@ -88,8 +89,8 @@ def main():
         print(f"  layer {i}: {len(names)} topics")
         for c, nm in enumerate(names):
             print(f"    [{i}.{c}] (n={(labels == c).sum()}) {nm}")
-    (od / f"{args.track}.json").write_text(json.dumps(out))
-    np.save(od / f"{args.track}__topic_name_vectors.npy",
+    (od / f"{args.track}{args.suffix}.json").write_text(json.dumps(out))
+    np.save(od / f"{args.track}{args.suffix}__topic_name_vectors.npy",
             np.array([v for v in topic_model.topic_name_vectors_], dtype=object), allow_pickle=True)
     print("NAMING_DONE")
 
