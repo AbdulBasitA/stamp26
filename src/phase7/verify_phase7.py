@@ -21,14 +21,20 @@ for track in ["captions", "siglip2"]:
     html = f.read_text()
     mb = f.stat().st_size / 1e6
     gate("size sane (5-80 MB)", 5 <= mb <= 80, f"{mb:.1f} MB")
+    import base64 as b64
+    import gzip
     n_thumbs = html.count("data:image/jpeg;base64,")
-    gate("thumbnails inlined", n_thumbs >= 1400, f"{n_thumbs}")
+    if n_thumbs < 1400:  # inline_data=True gzips point data — decompress blobs and count
+        for blob in re.findall(r'"([A-Za-z0-9+/=]{200000,})"', html):
+            try:
+                n_thumbs += gzip.decompress(b64.b64decode(blob)).count(b"data:image/jpeg;base64,")
+            except Exception:
+                pass
+    gate("thumbnails embedded", n_thumbs >= 1400, f"{n_thumbs}")
     gate("hover template present", "border-radius:4px" in html)
-    gate("offline JS inlined (no unpkg script tags)",
-         not re.search(r'src="https?://[^"]*unpkg', html))
-    gate("no bootstrapcdn leftovers", "bootstrapcdn" not in html)
-    ext = sorted(set(re.findall(r'https?://([^/"\'\s>]+)', html)))
-    print(f"  external hosts still referenced (informational): {ext[:8]}")
+    gate("no live external scripts", not re.search(r'<script[^>]+src="https?://', html))
+    gate("no live external links", not re.search(r'<link[^>]+href="https?://', html))
+    gate("fonts inlined", html.count("data:font") >= 5, f"{html.count('data:font')} @font-face URIs")
     gate("topic tree enabled", "topic-tree" in html.lower() or "topicTree" in html)
 
 print("PHASE7_VERIFY_PASS" if all(gates) and gates else f"PHASE7_VERIFY_FAIL ({sum(not g for g in gates)})")

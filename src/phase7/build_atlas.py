@@ -122,15 +122,12 @@ def main():
     out = od / f"atlas_{track}.html"
     plot.save(str(out))
 
-    # strip the unconditional maxcdn bootstrap/font-awesome links (dangle when air-gapped)
+    # strip ALL external <link> tags (bootstrap/font CDNs dangle when air-gapped; fonts are
+    # already inlined by offline_mode). Regex over the whole doc — tags can span lines.
+    import re
     html = out.read_text()
-    cleaned, removed = [], 0
-    for line in html.splitlines():
-        if "maxcdn.bootstrapcdn.com" in line or "bootstrapcdn" in line:
-            removed += 1
-            continue
-        cleaned.append(line)
-    out.write_text("\n".join(cleaned))
+    html, removed = re.subn(r'<link[^>]+href="https?://[^"]*"[^>]*/?>', "", html)
+    out.write_text(html)
     print(f"{out} written: {out.stat().st_size/1e6:.1f} MB ({n} points, {len(layers)} layers, "
           f"{removed} CDN links stripped)")
     print("ATLAS_DONE")
