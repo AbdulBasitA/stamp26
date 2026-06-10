@@ -177,6 +177,7 @@ Each phase ends with explicit **Verify** gates. Don't start phase N+1 with phase
 - [ ] Eyeball: names match contact sheets for 10 random clusters.
 
 ### Phase 6 — Evaluations — workshop day 2
+**Amendments from Phase 5 (2026-06-10):** (a) namer serving: TP=4 is the ONLY working config on 24GB cards — TP=2 fails to initialize; always plan CPU keyphrase-embedder alongside. (b) Snow finding: captioner reports weather=snow in 26% of clips vs 1/1500 in human metadata (glare misread); 5 base-cluster names inherited "snowy". While the namer is up for judging, re-run naming with a metadata-priority template instruction ("where the human-annotation metadata profile conflicts with sample descriptions, trust the metadata for weather/lighting") as a second condition — naive vs metadata-grounded naming is a clean RQ#10 mini-experiment AND fixes the atlas. (c) Eval (b) must score BOTH links: name↔captions (judge vs held-out captions) and name↔reality (metadata consistency check) — the snow case proves a name can be caption-faithful but world-false.
 **Build:**
 - Eval (a) per D22: resampling harness; GLOSH (hdbscan on 5-D) + high-dim kNN control + LOF; clip vs window granularity × tracks; lift-over-chance table + rank-curve figures; label-noise sensitivity pass.
 - Eval (b) per §3.5: alignment scoring, judge harness (temp 0, held-out per D16), 3× stability reruns (fresh instances per D13).
