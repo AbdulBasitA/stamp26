@@ -35,7 +35,7 @@ def cluster(track, u5, X):
     from toponymy.cluster_layer import ClusterLayerText
 
     emb = np.asarray(X.todense(), np.float32) if hasattr(X, "todense") else X
-    c = ToponymyClusterer(min_clusters=4, min_samples=5, base_min_cluster_size=12)
+    c = ToponymyClusterer(min_clusters=4, min_samples=2, base_min_cluster_size=12)  # swept 2026-06-10: noise 35%->26%/22% on siglip2/captions
     c.fit(u5, emb, ClusterLayerText)
     layers = [l.cluster_labels for l in c.cluster_layers_]
     tree = {f"{k[0]},{k[1]}": [f"{a},{b}" for a, b in v] for k, v in c.cluster_tree_.items()}
@@ -49,7 +49,11 @@ def main():
     for track, (loader, metric) in CLIP_TRACKS.items():
         print(f"=== {track} ===", flush=True)
         ids, X = loader()
-        u5, u2 = fit_umaps(X, metric)
+        if (OUT / f"{track}__5d.npy").exists():
+            u5, u2 = np.load(OUT / f"{track}__5d.npy"), np.load(OUT / f"{track}__2d.npy")
+            print("  reusing saved UMAP spaces")
+        else:
+            u5, u2 = fit_umaps(X, metric)
         valid = np.isfinite(u5).all(1) & np.isfinite(u2).all(1)
         if not valid.all():
             print(f"  {(~valid).sum()} disconnected points masked")
@@ -82,6 +86,9 @@ def main():
 
     for track, (loader, metric) in WINDOW_TRACKS.items():
         print(f"=== {track} (UMAP only) ===", flush=True)
+        if (OUT / f"{track}__5d.npy").exists():
+            print("  reusing saved UMAP spaces")
+            continue
         ids, X = loader()
         u5, u2 = fit_umaps(X, metric)
         np.save(OUT / f"{track}__5d.npy", u5)
