@@ -21,6 +21,7 @@ HOVER_TEMPLATE = """<div style="max-width:340px">
 <div style="font-size:11px;margin-top:4px">{hover_text}</div>
 <div style="font-size:10px;color:#888;margin-top:3px">
 {clip_id} &middot; {collision} &middot; {weather_h}/{lighting_h}/{scene_h} &middot; name-confidence {judge}</div>
+<div style="font-size:10px;color:#6af;margin-top:2px">click point to play clip</div>
 </div>"""
 
 
@@ -90,8 +91,14 @@ def main():
     judge = np.array([per.get(l, np.nan) if l >= 0 else np.nan for l in base])
 
     captions_text = np.array([recs[c]["caption"] if c in recs else "" for c in ids])
+    # click-to-play: served/local relative URL; #t= media fragment starts playback
+    # ~5s before the annotated event on positive clips
+    t_start = [max(0.0, float(t) - 5.0) if (l == 1 and pd.notna(t)) else 0.0
+               for l, t in zip(meta.label.values, meta.time_of_event.values)]
+    video_urls = [f"videos/{c}.mp4#t={ts:.0f}" for c, ts in zip(ids, t_start)]
     extra = pd.DataFrame({
         "thumb": [thumb_uri(c) for c in ids],
+        "video_url": video_urls,
         "clip_id": ids,
         "collision": np.where(meta.label.values == 1, "collision/near-miss", "normal"),
         "weather_h": meta.weather.fillna("?").values,
@@ -126,6 +133,7 @@ def main():
         label_wrap_width=30,
         max_fontsize=22,
         min_fontsize=14,
+        on_click="window.open(`{video_url}`)",
     )
     od = ROOT / "artifacts/atlas"
     od.mkdir(parents=True, exist_ok=True)
