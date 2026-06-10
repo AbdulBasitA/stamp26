@@ -4,6 +4,8 @@ cd /home/b3ali/projects/stamp26
 mkdir -p artifacts/smoke
 VLLM=venvs/vllm/bin/vllm
 PY=venvs/main/bin/python
+# venv bin on PATH so flashinfer JIT subprocesses find ninja
+export PATH="/home/b3ali/projects/stamp26/venvs/vllm/bin:$PATH"
 
 wait_ready() { # port, timeout_s
   for i in $(seq 1 $(($2 / 5))); do
@@ -67,3 +69,4 @@ else
 fi
 kill_server
 echo "ALL_SMOKES_DONE"
+touch artifacts/smoke/.suite_done
