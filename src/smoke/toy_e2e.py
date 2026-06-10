@@ -25,7 +25,7 @@ for theme, tpl in themes.items():
 
 from sentence_transformers import SentenceTransformer
 
-st = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device="cuda:0")
+st = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device="cpu")  # namer owns all 4 GPUs during this test
 embs = np.asarray(st.encode(captions, normalize_embeddings=True))
 print(f"embeddings: {embs.shape}")
 
