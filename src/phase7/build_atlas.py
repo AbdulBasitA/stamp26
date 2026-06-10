@@ -51,11 +51,18 @@ def main():
     rows = np.asarray([row_of[c] for c in ids])
     map2d = np.load(ROOT / f"artifacts/maps/{track}__2d.npy")[rows]
 
-    # label layers, finest first
+    # label layers, finest first; display labels truncated at a word boundary (~55 chars)
+    # so the map stays readable — full names remain in the topic tree
+    def display_name(nm, limit=55):
+        if len(nm) <= limit:
+            return nm
+        cut = nm[:limit].rsplit(" ", 1)[0].rstrip(",;")
+        return cut + " …"
+
     layers = []
     for li, layer in enumerate(naming["layers"]):
         lab = np.load(ROOT / f"artifacts/naming/{track}__labels_layer{li}.npy")
-        names = layer["names"]
+        names = [display_name(nm) for nm in layer["names"]]
         layers.append(np.array([names[l] if l >= 0 else "Unlabelled" for l in lab]))
 
     man = pd.read_parquet(ROOT / "artifacts/manifest.parquet").set_index("clip_id")
@@ -116,6 +123,9 @@ def main():
         offline_mode=True,
         inline_data=True,
         cvd_safer=True,
+        label_wrap_width=30,
+        max_fontsize=22,
+        min_fontsize=14,
     )
     od = ROOT / "artifacts/atlas"
     od.mkdir(parents=True, exist_ok=True)
