@@ -14,6 +14,19 @@
 
 ---
 
+## STATUS (updated 2026-06-12)
+
+**Phases 0–7 COMPLETE, all verify gates green.** Phase 8 (stretch) and Phase 9 (packaging + deck) remain.
+
+Headline results banked:
+- **Eval (a):** collision events are invisible as outliers at whole-clip granularity (best lift 1.7× chance) and strongly detectable at 2-s event-window granularity (**17.6× lift, AUROC 0.93, ~30× enrichment @ P@25**) — the sessionization claim demonstrated with 30-resample CIs. Second finding: density scorers in UMAP space fail at window level; raw high-dim kNN distance wins — *map in projected space, hunt outliers in native space.*
+- **Eval (b):** names are category-trustworthy but qualifier-untrustworthy: judge precision ~0.5 (over-specific qualifiers), 38% of weather/lighting claims in names unsupported by human metadata, category-level stability 87–94% across reruns vs 15–24% exact-string. Per-cluster confidence painted on the atlas.
+- **The enum artifact (best process finding):** strict guided decoding forced "sunny"→"snow" (no "sunny" in the enum; token prefix commits), corrupting 26% of captions, which the model then rationalized in free text and the namer propagated into 5 topic names — invisible to caption-based validation, caught only via the independent human-label channel. Fixed (schema v2: caption-first field order + de-collided enums: 386→1 snow captions); 12/12 flip experiment + v1 archive (`artifacts/captions/enumbug/`) retained as the before/after artifact.
+- **Captioner bake-off:** Qwen3.5-9B-AWQ decisively beat Qwen3-VL-8B-FP8 (99.5% vs 95.3% parse; event recall 39.7% vs 0.7% on event windows — B narrates crash-induced camera tilt as deliberate camerawork). Focused-prompt probe showed the ~40% recall ceiling is model capability, not prompting.
+- **Deliverable:** two interactive offline atlases (`artifacts/atlas/atlas_{captions,siglip2}.html`, 9.3 MB each, self-contained) — hover thumbnails, click-to-play videos seeking to the event, NHTSA topic layers, search, topic tree, outlier + judge-confidence color layers.
+
+---
+
 ## 1. Decisions log (adjudicated — do not relitigate during execution)
 
 | # | Decision | Resolution | Source |
